@@ -25,7 +25,6 @@ DATABASES = {
 
 # Static files configuration for production
 MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
-
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
@@ -41,14 +40,4 @@ WAGTAILADMIN_BASE_URL = os.environ.get('WAGTAILADMIN_BASE_URL', 'https://your-ap
 try:
     from .local import *
 except ImportError:
-    pass
-
-# Comando para coletar arquivos estáticos automaticamente
-import subprocess
-import sys
-
-# Executar collectstatic na primeira vez
-try:
-    subprocess.run([sys.executable, 'manage.py', 'collectstatic', '--noinput'], check=True)
-except:
     pass
