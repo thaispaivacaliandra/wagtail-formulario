@@ -1,0 +1,787 @@
+<!-- home/templates/home/formulario_page.html -->
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+{% load wagtailimages_tags %}
+
+{% block content %}
+<style>
+    :root {
+        --primary-color: {{ page.primary_color }};
+        --background-color: {{ page.background_color }};
+    }
+    
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        {% if page.background_image %}
+        background: url('{{ page.background_image.file.url }}');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        background-repeat: no-repeat;
+        {% else %}
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        {% endif %}
+        min-height: 100vh;
+    }
+    
+    /* Elementos decorativos */
+    .floating-shapes {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: -1;
+    }
+    
+    .shape {
+        position: absolute;
+        border-radius: 50%;
+        opacity: 0.1;
+        animation: float 6s ease-in-out infinite;
+    }
+    
+    .shape-1 {
+        width: 80px;
+        height: 80px;
+        background: var(--primary-color);
+        top: 20%;
+        left: 10%;
+        animation-delay: 0s;
+    }
+    
+    .shape-2 {
+        width: 120px;
+        height: 120px;
+        background: #ffd700;
+        top: 60%;
+        right: 15%;
+        animation-delay: 2s;
+    }
+    
+    .shape-3 {
+        width: 60px;
+        height: 60px;
+        background: #ff6b6b;
+        bottom: 30%;
+        left: 20%;
+        animation-delay: 4s;
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-20px); }
+    }
+    
+    /* Barra de progresso */
+    .progress {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 6px;
+        background: var(--primary-color);
+        transition: width 0.5s ease;
+        z-index: 1000;
+        display: none;
+    }
+    
+    .question-counter {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        display: none;
+        z-index: 1000;
+    }
+    
+    /* Container principal */
+    .form-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        padding: 2rem;
+    }
+    
+    .form-content {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        padding: 3rem;
+        max-width: 600px;
+        width: 100%;
+        position: relative;
+    }
+    
+    /* Tela de boas-vindas */
+    .welcome-screen {
+        text-align: center;
+        display: none;
+    }
+    
+    .welcome-screen.active {
+        display: block;
+    }
+    
+    .logo-container {
+        margin-bottom: 2rem;
+    }
+    
+    .hero-image img {
+        max-height: 200px;
+        margin-bottom: 1rem;
+    }
+    
+    .welcome-screen h1 {
+        font-size: 3rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, var(--primary-color), #4CAF50);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .subtitle {
+        font-size: 1.3rem;
+        color: #666;
+        margin-bottom: 1.5rem;
+        font-weight: 300;
+    }
+    
+    .welcome-screen p {
+        font-size: 1.1rem;
+        line-height: 1.6;
+        color: #555;
+        margin-bottom: 2rem;
+    }
+    
+    .start-btn {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 1rem 2.5rem;
+        border-radius: 50px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        box-shadow: 0 4px 15px rgba(42, 94, 44, 0.3);
+    }
+    
+    .start-btn:hover {
+        background: #1e4a20;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(42, 94, 44, 0.4);
+    }
+    
+    /* Perguntas */
+    .question {
+        display: none;
+        animation: fadeIn 0.5s ease-in-out;
+    }
+    
+    .question.active {
+        display: block;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .question h2 {
+        font-size: 1.8rem;
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+    
+    .question h3 {
+        font-size: 1.4rem;
+        color: #333;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+    
+    .required {
+        color: #dc3545;
+    }
+    
+    .question p {
+        color: #666;
+        margin-bottom: 1.5rem;
+        font-size: 0.95rem;
+    }
+    
+    /* Campos do formulário */
+    .input-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 1rem;
+        border: 2px solid #e1e5e9;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.3s;
+        background: #f8f9fa;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        background: white;
+        box-shadow: 0 0 0 3px rgba(42, 94, 44, 0.1);
+    }
+    
+    .input-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+    
+    /* Checkboxes e radios */
+    .checkbox-group, .radio-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .checkbox-item, .radio-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem;
+        border: 2px solid #e1e5e9;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: #f8f9fa;
+    }
+    
+    .checkbox-item:hover, .radio-item:hover {
+        border-color: var(--primary-color);
+        background: rgba(42, 94, 44, 0.05);
+    }
+    
+    .checkbox-item input:checked + label,
+    .radio-item input:checked + label {
+        color: var(--primary-color);
+        font-weight: 600;
+    }
+    
+    .checkbox-item input, .radio-item input {
+        width: 18px;
+        height: 18px;
+        margin: 0;
+        accent-color: var(--primary-color);
+    }
+    
+    .checkbox-item label, .radio-item label {
+        cursor: pointer;
+        margin: 0;
+        flex: 1;
+        font-size: 0.95rem;
+        line-height: 1.4;
+    }
+    
+    /* Select */
+    select.form-control {
+        cursor: pointer;
+    }
+    
+    /* Sub-opções */
+    .sub-options {
+        margin-top: 1rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 1px solid #e1e5e9;
+        display: none;
+    }
+    
+    .sub-options.show {
+        display: block;
+        animation: slideDown 0.3s ease;
+    }
+    
+    @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Mensagens de erro */
+    .error-message {
+        color: #dc3545;
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+        display: none;
+    }
+    
+    /* Navegação */
+    .navigation {
+        display: none;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 2rem;
+        position: absolute;
+        top: 50%;
+        right: 10px;
+    }
+    
+    .nav-btn {
+        padding: 0.75rem 1.5rem;
+        border: 2px solid #e1e5e9;
+        background: white;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: all 0.3s;
+        min-width: 120px;
+    }
+    
+    .nav-btn:hover:not(:disabled) {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+    
+    .nav-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    .nav-btn.primary {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+    
+    .nav-btn.primary:hover {
+        background: #1e4a20;
+        border-color: #1e4a20;
+        color: white;
+    }
+    
+    /* Tela final */
+    .final-screen {
+        text-align: center;
+        display: none;
+    }
+    
+    .final-screen.active {
+        display: block;
+    }
+    
+    .final-screen .emoji {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        display: block;
+    }
+    
+    .final-screen h2 {
+        font-size: 2.5rem;
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+        font-weight: 700;
+    }
+    
+    .final-screen p {
+        font-size: 1.1rem;
+        line-height: 1.6;
+        color: #555;
+    }
+    
+    /* Responsivo */
+    @media (max-width: 768px) {
+        .form-container {
+            padding: 1rem;
+        }
+        
+        .form-content {
+            padding: 2rem;
+        }
+        
+        .input-row {
+            grid-template-columns: 1fr;
+        }
+        
+        .welcome-screen h1 {
+            font-size: 2.5rem;
+        }
+        
+        .navigation {
+            flex-direction: column;
+        }
+        
+        .question-counter {
+            position: relative;
+            top: auto;
+            right: auto;
+            margin-bottom: 1rem;
+        }
+    }
+</style>
+
+<!-- Elementos decorativos -->
+<div class="floating-shapes">
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+    <div class="shape shape-3"></div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="question-counter" id="counter">1 / {{ page.get_form_fields.count }}</div>
+
+<div class="form-container">
+    <div class="form-content">
+        <!-- Tela de Boas-vindas -->
+        <div class="welcome-screen active" id="welcomeScreen">
+            <div class="logo-container">
+                {% if page.logo %}
+    <div class="hero-image">
+        <img src="{{ page.logo.file.url }}" alt="{{ page.form_title }}">
+    </div>
+{% endif %}
+            </div>
+            <h1>{{ page.form_title }}</h1>
+            {% if page.form_subtitle %}
+                <p class="subtitle">{{ page.form_subtitle }}</p>
+            {% endif %}
+            {% if page.intro %}
+                <div>{{ page.intro|richtext }}</div>
+            {% endif %}
+            <button class="start-btn" onclick="startForm()">Começar Inscrição</button>
+        </div>
+
+        <!-- Formulário -->
+        <form method="post" id="wagtailForm" style="display: none;">
+            {% csrf_token %}
+            
+            {% for field in page.get_form_fields %}
+                <div class="question" data-question="{{ forloop.counter }}">
+                    {% if field.section_title %}
+                        <h2>{{ field.section_title }}</h2>
+                    {% endif %}
+                    
+                    <h3>
+                        {{ field.label }}
+                        {% if field.required %}<span class="required">*</span>{% endif %}
+                    </h3>
+                    
+                    {% if field.help_text_field %}
+                        <p>{{ field.help_text_field }}</p>
+                    {% endif %}
+                    
+                    <div class="input-group">
+                        {% if field.field_type == 'singleline' %}
+                            <input type="text" 
+                                   name="{{ field.clean_name }}" 
+                                   id="id_{{ field.clean_name }}"
+                                   class="form-control"
+                                   {% if field.placeholder %}placeholder="{{ field.placeholder }}"{% endif %}
+                                   {% if field.default_value %}value="{{ field.default_value }}"{% endif %}
+                                   {% if field.required %}required{% endif %}>
+                        
+                        {% elif field.field_type == 'email' %}
+                            <input type="email" 
+                                   name="{{ field.clean_name }}" 
+                                   id="id_{{ field.clean_name }}"
+                                   class="form-control"
+                                   {% if field.placeholder %}placeholder="{{ field.placeholder }}"{% endif %}
+                                   {% if field.default_value %}value="{{ field.default_value }}"{% endif %}
+                                   {% if field.required %}required{% endif %}>
+                        
+                        {% elif field.field_type == 'cpf' %}
+                            <input type="text" 
+                                   name="{{ field.clean_name }}" 
+                                   id="id_{{ field.clean_name }}"
+                                   class="form-control"
+                                   placeholder="000.000.000-00"
+                                   maxlength="14"
+                                   {% if field.required %}required{% endif %}>
+                        
+                        {% elif field.field_type == 'telefone' %}
+                            <input type="tel" 
+                                   name="{{ field.clean_name }}" 
+                                   id="id_{{ field.clean_name }}"
+                                   class="form-control"
+                                   placeholder="(11) 99999-9999"
+                                   {% if field.required %}required{% endif %}>
+                        
+                        {% elif field.field_type == 'senha' %}
+                            <input type="password" 
+                                   name="{{ field.clean_name }}" 
+                                   id="id_{{ field.clean_name }}"
+                                   class="form-control"
+                                   {% if field.placeholder %}placeholder="{{ field.placeholder }}"{% endif %}
+                                   {% if field.required %}required{% endif %}>
+                        
+                        {% elif field.field_type == 'number' %}
+                            <input type="number" 
+                                   name="{{ field.clean_name }}" 
+                                   id="id_{{ field.clean_name }}"
+                                   class="form-control"
+                                   {% if field.placeholder %}placeholder="{{ field.placeholder }}"{% endif %}
+                                   {% if field.default_value %}value="{{ field.default_value }}"{% endif %}
+                                   {% if field.required %}required{% endif %}>
+                        
+                        {% elif field.field_type == 'date' %}
+                            <input type="date" 
+                                   name="{{ field.clean_name }}" 
+                                   id="id_{{ field.clean_name }}"
+                                   class="form-control"
+                                   {% if field.default_value %}value="{{ field.default_value }}"{% endif %}
+                                   {% if field.required %}required{% endif %}>
+                        
+                        {% elif field.field_type == 'multiline' %}
+                            <textarea name="{{ field.clean_name }}" 
+                                      id="id_{{ field.clean_name }}"
+                                      class="form-control"
+                                      rows="4"
+                                      {% if field.placeholder %}placeholder="{{ field.placeholder }}"{% endif %}
+                                      {% if field.required %}required{% endif %}>{% if field.default_value %}{{ field.default_value }}{% endif %}</textarea>
+                        
+                        {% elif field.field_type == 'dropdown' %}
+                            <select name="{{ field.clean_name }}" 
+                                    id="id_{{ field.clean_name }}"
+                                    class="form-control"
+                                    {% if field.required %}required{% endif %}>
+                                <option value="">Selecione uma opção</option>
+                                {% for choice in field.get_choices_list %}
+                                    <option value="{{ choice }}" 
+                                            {% if choice == field.default_value %}selected{% endif %}>
+                                        {{ choice }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        
+                        {% elif field.field_type == 'radio' %}
+                            <div class="radio-group">
+                                {% for choice in field.get_choices_list %}
+                                    <div class="radio-item">
+                                        <input type="radio" 
+                                               name="{{ field.clean_name }}" 
+                                               id="id_{{ field.clean_name }}_{{ forloop.counter }}"
+                                               value="{{ choice }}"
+                                               {% if choice == field.default_value %}checked{% endif %}
+                                               {% if field.required and forloop.first %}required{% endif %}>
+                                        <label for="id_{{ field.clean_name }}_{{ forloop.counter }}">
+                                            {{ choice }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        
+                        {% elif field.field_type == 'checkboxes' %}
+                            <div class="checkbox-group">
+                                {% for choice in field.get_choices_list %}
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" 
+                                               name="{{ field.clean_name }}" 
+                                               id="id_{{ field.clean_name }}_{{ forloop.counter }}"
+                                               value="{{ choice }}">
+                                        <label for="id_{{ field.clean_name }}_{{ forloop.counter }}">
+                                            {{ choice }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        
+                        {% elif field.field_type == 'checkbox' %}
+                            <div class="checkbox-group">
+                                <div class="checkbox-item">
+                                    <input type="checkbox" 
+                                           name="{{ field.clean_name }}" 
+                                           id="id_{{ field.clean_name }}"
+                                           value="true"
+                                           {% if field.required %}required{% endif %}>
+                                    <label for="id_{{ field.clean_name }}">
+                                        {{ field.label }}
+                                    </label>
+                                </div>
+                            </div>
+                        
+                        {% else %}
+                            <!-- Fallback para outros tipos -->
+                            <input type="text" 
+                                   name="{{ field.clean_name }}" 
+                                   id="id_{{ field.clean_name }}"
+                                   class="form-control"
+                                   {% if field.placeholder %}placeholder="{{ field.placeholder }}"{% endif %}
+                                   {% if field.default_value %}value="{{ field.default_value }}"{% endif %}
+                                   {% if field.required %}required{% endif %}>
+                        {% endif %}
+                        
+                        <div class="error-message" id="error-{{ field.clean_name }}"></div>
+                    </div>
+                </div>
+            {% endfor %}
+        </form>
+
+        <!-- Tela Final -->
+        <div class="final-screen" id="finalScreen">
+            {% if page.thank_you_image %}
+                <div class="hero-image">
+                    <img src="{{ page.thank_you_image.url }}" alt="Sucesso">
+                </div>
+            {% endif %}
+            <span class="emoji">🎉</span>
+            <h2>Inscrição Concluída!</h2>
+            {% if page.thank_you_text %}
+                <div>{{ page.thank_you_text|richtext }}</div>
+            {% else %}
+                <p>Parabéns! Sua inscrição foi realizada com sucesso.<br><br>
+                Em breve você receberá um e-mail de confirmação.<br><br>
+                Obrigado! 🚀</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="navigation">
+    <button class="nav-btn" id="prevBtn" onclick="previousQuestion()" disabled>Anterior</button>
+    <button class="nav-btn primary" id="nextBtn" onclick="nextQuestion()">Próximo</button>
+</div>
+
+<script>
+    let currentQuestion = 0;
+    const totalQuestions = {{ page.get_form_fields.count }};
+    const formData = {};
+
+    function startForm() {
+        document.getElementById('welcomeScreen').classList.remove('active');
+        document.getElementById('wagtailForm').style.display = 'block';
+        
+        setTimeout(() => {
+            document.getElementById('progress').style.display = 'block';
+            document.getElementById('counter').style.display = 'block';
+            document.querySelector('.navigation').style.display = 'flex';
+            currentQuestion = 1;
+            showQuestion(currentQuestion);
+        }, 300);
+    }
+
+    function updateProgress() {
+        const progress = (currentQuestion / totalQuestions) * 100;
+        document.getElementById('progress').style.width = progress + '%';
+        document.getElementById('counter').textContent = currentQuestion + ' / ' + totalQuestions;
+    }
+
+    function showQuestion(questionNumber) {
+        document.querySelectorAll('.question').forEach(q => {
+            q.classList.remove('active');
+        });
+        
+        setTimeout(() => {
+            const currentQ = document.querySelector(`[data-question="${questionNumber}"]`);
+            if (currentQ) {
+                currentQ.classList.add('active');
+            }
+        }, 100);
+        
+        document.getElementById('prevBtn').disabled = questionNumber === 1;
+        
+        if (questionNumber === totalQuestions) {
+            document.getElementById('nextBtn').textContent = 'Finalizar';
+        } else {
+            document.getElementById('nextBtn').textContent = 'Próximo';
+        }
+        
+        updateProgress();
+    }
+
+    function nextQuestion() {
+        if (!validateCurrentQuestion()) {
+            return;
+        }
+        
+        if (currentQuestion < totalQuestions) {
+            currentQuestion++;
+            showQuestion(currentQuestion);
+        } else {
+            // Submeter o formulário
+            document.getElementById('wagtailForm').submit();
+        }
+    }
+
+    function previousQuestion() {
+        if (currentQuestion > 1) {
+            currentQuestion--;
+            showQuestion(currentQuestion);
+        }
+    }
+
+    function validateCurrentQuestion() {
+        const currentQuestionEl = document.querySelector(`[data-question="${currentQuestion}"]`);
+        const requiredInputs = currentQuestionEl.querySelectorAll('input[required], select[required], textarea[required]');
+        
+        for (let input of requiredInputs) {
+            if (!input.value.trim()) {
+                input.focus();
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Formatação CPF e telefone
+    document.addEventListener('input', function(e) {
+        if (e.target.type === 'text' && e.target.placeholder === '000.000.000-00') {
+            let value = e.target.value.replace(/[^\d]/g, '');
+            value = value.replace(/(\d{3})(\d)/, '$1.$2');
+            value = value.replace(/(\d{3})(\d)/, '$1.$2');
+            value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+            e.target.value = value;
+        }
+        
+        if (e.target.type === 'tel') {
+            let value = e.target.value.replace(/[^\d]/g, '');
+            if (value.length <= 10) {
+                value = value.replace(/(\d{2})(\d)/, '($1) $2');
+                value = value.replace(/(\d{4})(\d)/, '$1-$2');
+            } else {
+                value = value.replace(/(\d{2})(\d)/, '($1) $2');
+                value = value.replace(/(\d{5})(\d)/, '$1-$2');
+            }
+            e.target.value = value;
+        }
+    });
+
+    // Enter para próxima pergunta
+    document.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+            if (currentQuestion > 0) {
+                nextQuestion();
+            }
+        }
+    });
+
+    // Inicializar
+    document.addEventListener('DOMContentLoaded', function() {
+        // Se chegou aqui via POST (formulário submetido), mostrar tela final
+        {% if request.method == 'POST' and form.is_valid %}
+            showFinalScreen();
+        {% endif %}
+    });
+
+    function showFinalScreen() {
+        document.getElementById('wagtailForm').style.display = 'none';
+        document.querySelector('.navigation').style.display = 'none';
+        document.getElementById('counter').style.display = 'none';
+        document.getElementById('progress').style.width = '100%';
+        document.getElementById('finalScreen').classList.add('active');
+    }
+</script>
+
+{% endblock %}
