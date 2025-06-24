@@ -42,3 +42,13 @@ try:
     from .local import *
 except ImportError:
     pass
+
+# Comando para coletar arquivos estáticos automaticamente
+import subprocess
+import sys
+
+# Executar collectstatic na primeira vez
+try:
+    subprocess.run([sys.executable, 'manage.py', 'collectstatic', '--noinput'], check=True)
+except:
+    pass
